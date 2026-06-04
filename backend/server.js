@@ -13,6 +13,9 @@ const { apiLimiter } = require('./middleware/rateLimiter');
 const app = express();
 const server = http.createServer(app);
 
+// Trust proxy for Render/Heroku load balancers
+app.set('trust proxy', 1);
+
 // Socket.io setup
 const io = new Server(server, {
   cors: { origin: '*', methods: ['GET', 'POST'] }
