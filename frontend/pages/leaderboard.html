@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Global Leaderboard — AI Interview Platform</title>
+  <link rel="stylesheet" href="/css/global.css">
+  <link rel="stylesheet" href="/css/pages.css">
+</head>
+<body>
+  
+  <div class="sidebar-overlay"></div>
+  <div class="app-layout">
+    <aside class="sidebar"></aside>
+
+    <main class="main-content">
+      <header class="top-header">
+        <div class="header-left">
+          <button class="mobile-menu-btn">☰</button>
+          <div>
+            <h2 class="page-title">Global Leaderboard</h2>
+            <div class="breadcrumb">Top ranked candidates across the platform</div>
+          </div>
+        </div>
+        <div class="header-right">
+          <div style="text-align:right">
+            <div style="font-weight:600;font-size:0.9rem" id="user-name">Loading...</div>
+            <div style="font-size:0.75rem;color:var(--text-tertiary)" id="user-role">User</div>
+          </div>
+          <div class="avatar" id="user-avatar">U</div>
+        </div>
+      </header>
+
+      <div class="page-content">
+        
+        <!-- Podium -->
+        <div class="leaderboard-top animate-slide-up" id="podium-container">
+          <!-- Position 2 -->
+          <div class="podium-card silver" style="height: 90%;">
+            <div class="podium-rank">🥈</div>
+            <div class="avatar avatar-lg" style="margin:0 auto var(--space-sm)">?</div>
+            <div class="podium-name">Loading...</div>
+            <div class="podium-score">--</div>
+          </div>
+          <!-- Position 1 -->
+          <div class="podium-card gold" style="height: 100%; box-shadow: var(--shadow-glow);">
+            <div class="podium-rank">🏆</div>
+            <div class="avatar avatar-xl" style="margin:0 auto var(--space-md)">?</div>
+            <div class="podium-name" style="font-size:1.2rem">Loading...</div>
+            <div class="podium-score" style="font-size:1rem;color:var(--primary-400);font-weight:700">--</div>
+          </div>
+          <!-- Position 3 -->
+          <div class="podium-card bronze" style="height: 80%;">
+            <div class="podium-rank">🥉</div>
+            <div class="avatar avatar-lg" style="margin:0 auto var(--space-sm)">?</div>
+            <div class="podium-name">Loading...</div>
+            <div class="podium-score">--</div>
+          </div>
+        </div>
+
+        <!-- Leaderboard Table -->
+        <div class="card animate-slide-up" style="animation-delay:0.2s">
+          <div class="card-header">
+            <h3 class="card-title">All Candidates Ranking</h3>
+          </div>
+          <div class="table-container">
+            <table>
+              <thead>
+                <tr>
+                  <th style="width: 80px; text-align: center;">Rank</th>
+                  <th>Candidate</th>
+                  <th>College</th>
+                  <th>Aptitude</th>
+                  <th>Coding</th>
+                  <th>Interview</th>
+                  <th>Overall Score</th>
+                </tr>
+              </thead>
+              <tbody id="leaderboard-table">
+                <tr><td colspan="7" class="text-center">Loading...</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+      </div>
+    </main>
+  </div>
+
+  <script src="/js/api.js"></script>
+  <script src="/js/components.js"></script>
+  <script>
+    document.addEventListener('DOMContentLoaded', async () => {
+      const user = initDashboardPage('leaderboard');
+      if(user) document.getElementById('user-role').textContent = user.role.charAt(0).toUpperCase() + user.role.slice(1);
+      await loadLeaderboard();
+    });
+
+    async function loadLeaderboard() {
+      const endpoint = api.getUser()?.role === 'candidate' ? '/candidates/leaderboard' : '/recruiters/candidates?sortBy=overall_score&limit=50';
+      const res = await api.get(endpoint);
+      
+      if (!res.success) {
+        toast.error('Failed to load leaderboard data');
+        return;
+      }
+
+      const data = api.getUser()?.role === 'candidate' ? res.data : res.data.candidates;
+      
+      // Render Podium (Top 3)
+      if (data.length >= 3) {
+        const top3 = [data[1], data[0], data[2]]; // Silver, Gold, Bronze order
+        const cards = document.querySelectorAll('.podium-card');
+        
+        top3.forEach((c, idx) => {
+          if (!c) return;
+          const nameEl = cards[idx].querySelector('.podium-name');
+          const scoreEl = cards[idx].querySelector('.podium-score');
+          const avatarEl = cards[idx].querySelector('.avatar');
+          
+          nameEl.textContent = `${c.first_name} ${c.last_name.charAt(0)}.`;
+          scoreEl.textContent = `${c.overall_score} / 100`;
+          avatarEl.textContent = c.first_name[0];
+        });
+      }
+
+      // Render Table (Rank 4 onwards)
+      const tbody = document.getElementById('leaderboard-table');
+      if (data.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="7" class="text-center">No candidates ranked yet.</td></tr>';
+      } else {
+        const currentUser = api.getUser();
+        tbody.innerHTML = data.slice(3).map(c => {
+          const isCurrentUser = currentUser.id === c.user_id || currentUser.id === c.id;
+          const bg = isCurrentUser ? 'background:rgba(99,102,241,0.1)' : '';
+          
+          return `
+            <tr style="${bg}">
+              <td style="text-align:center;font-weight:700;color:var(--text-secondary)">#${c.global_rank || '-'}</td>
+              <td>
+                <div style="display:flex;align-items:center;gap:10px">
+                  <div class="avatar" style="width:32px;height:32px;font-size:0.8rem">${c.first_name[0]}</div>
+                  <div>
+                    <div style="font-weight:600">${c.first_name} ${c.last_name} ${isCurrentUser ? '<span class="badge badge-primary" style="margin-left:4px">You</span>' : ''}</div>
+                  </div>
+                </div>
+              </td>
+              <td>${c.college || 'N/A'}</td>
+              <td>${c.aptitude_score || 0}</td>
+              <td>${c.coding_score || 0}</td>
+              <td>${c.interview_score || 0}</td>
+              <td><span style="font-weight:700;color:${getScoreColor(c.overall_score)}">${c.overall_score || 0}</span></td>
+            </tr>
+          `;
+        }).join('');
+      }
+    }
+  </script>
+</body>
+</html>

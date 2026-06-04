@@ -1,0 +1,251 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Admin Dashboard — AI Interview Platform</title>
+  <link rel="stylesheet" href="/css/global.css">
+  <link rel="stylesheet" href="/css/pages.css">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+  
+  <div class="sidebar-overlay"></div>
+  <div class="app-layout">
+    <aside class="sidebar"></aside>
+
+    <main class="main-content">
+      <header class="top-header">
+        <div class="header-left">
+          <button class="mobile-menu-btn">☰</button>
+          <div>
+            <h2 class="page-title">System Administration</h2>
+            <div class="breadcrumb">Platform overview and user management</div>
+          </div>
+        </div>
+        <div class="header-right">
+          <div style="text-align:right">
+            <div style="font-weight:600;font-size:0.9rem" id="user-name">Loading...</div>
+            <div style="font-size:0.75rem;color:var(--text-tertiary)">Super Admin</div>
+          </div>
+          <div class="avatar" id="user-avatar" style="background:linear-gradient(135deg, var(--error), var(--warning))">A</div>
+        </div>
+      </header>
+
+      <div class="page-content">
+        <!-- Stats Row -->
+        <div class="grid-4 stagger" style="margin-bottom:var(--space-xl)" id="stats-container">
+          <div class="stat-card">
+            <div style="display:flex;justify-content:space-between">
+              <div class="stat-icon blue">👥</div>
+            </div>
+            <div class="stat-value" id="stat-users">--</div>
+            <div class="stat-label">Total Users</div>
+          </div>
+          <div class="stat-card">
+            <div style="display:flex;justify-content:space-between">
+              <div class="stat-icon green">✅</div>
+            </div>
+            <div class="stat-value" id="stat-active">--</div>
+            <div class="stat-label">Active Today</div>
+          </div>
+          <div class="stat-card">
+            <div style="display:flex;justify-content:space-between">
+              <div class="stat-icon purple">🎤</div>
+            </div>
+            <div class="stat-value" id="stat-interviews">--</div>
+            <div class="stat-label">Interviews Hosted</div>
+          </div>
+          <div class="stat-card">
+            <div style="display:flex;justify-content:space-between">
+              <div class="stat-icon orange">💻</div>
+            </div>
+            <div class="stat-value" id="stat-submissions">--</div>
+            <div class="stat-label">Code Submissions</div>
+          </div>
+        </div>
+
+        <div class="grid" style="grid-template-columns:2fr 1fr;gap:var(--space-xl)">
+          <!-- Charts -->
+          <div class="flex-col gap-lg animate-slide-up" style="animation-delay:0.3s">
+            <div class="card">
+              <div class="card-header">
+                <h3 class="card-title">Platform Activity (Last 7 Days)</h3>
+              </div>
+              <div class="chart-container" style="height:300px">
+                <canvas id="activityChart"></canvas>
+              </div>
+            </div>
+
+            <div class="card">
+              <div class="card-header">
+                <h3 class="card-title">Recent System Logs</h3>
+                <a href="#system" class="btn btn-ghost btn-sm">View All</a>
+              </div>
+              <div class="table-container">
+                <table>
+                  <thead>
+                    <tr>
+                      <th>Level</th>
+                      <th>Message</th>
+                      <th>Time</th>
+                    </tr>
+                  </thead>
+                  <tbody id="logs-table">
+                    <tr><td colspan="3" class="text-center">Loading...</td></tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+
+          <!-- Side Panel -->
+          <div class="flex-col gap-lg animate-slide-up" style="animation-delay:0.4s">
+            <div class="card card-glass">
+              <div class="card-header">
+                <h3 class="card-title">User Distribution</h3>
+              </div>
+              <div class="flex-col gap-md">
+                <div>
+                  <div style="display:flex;justify-content:space-between;margin-bottom:4px;font-size:0.85rem">
+                    <span>Candidates</span>
+                    <span id="dist-candidate" style="font-weight:600">--</span>
+                  </div>
+                  <div class="progress-bar"><div class="progress-fill" id="bar-candidate" style="width:0%;background:var(--primary-500)"></div></div>
+                </div>
+                <div>
+                  <div style="display:flex;justify-content:space-between;margin-bottom:4px;font-size:0.85rem">
+                    <span>Recruiters</span>
+                    <span id="dist-recruiter" style="font-weight:600">--</span>
+                  </div>
+                  <div class="progress-bar"><div class="progress-fill" id="bar-recruiter" style="width:0%;background:var(--accent-500)"></div></div>
+                </div>
+              </div>
+            </div>
+
+            <div class="card">
+              <div class="card-header">
+                <h3 class="card-title">Server Status</h3>
+              </div>
+              <div class="flex-col gap-md" style="font-size:0.85rem">
+                <div style="display:flex;justify-content:space-between;align-items:center;padding-bottom:10px;border-bottom:1px solid var(--border-primary)">
+                  <span style="color:var(--text-secondary)">API Status</span>
+                  <span class="badge badge-success">Online</span>
+                </div>
+                <div style="display:flex;justify-content:space-between;align-items:center;padding-bottom:10px;border-bottom:1px solid var(--border-primary)">
+                  <span style="color:var(--text-secondary)">Database</span>
+                  <span class="badge badge-success">Connected</span>
+                </div>
+                <div style="display:flex;justify-content:space-between;align-items:center;padding-bottom:10px;border-bottom:1px solid var(--border-primary)">
+                  <span style="color:var(--text-secondary)">Environment</span>
+                  <span style="font-family:var(--font-mono);font-weight:600">development</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <script src="/js/api.js"></script>
+  <script src="/js/components.js"></script>
+  <script>
+    document.addEventListener('DOMContentLoaded', async () => {
+      initDashboardPage('admin-dashboard');
+      await loadDashboardData();
+    });
+
+    async function loadDashboardData() {
+      const res = await api.get('/admin/dashboard');
+      if (!res.success) {
+        toast.error('Failed to load dashboard data');
+        return;
+      }
+
+      const { stats, dailyActivity, recentLogs } = res.data;
+
+      // Update Stats
+      document.getElementById('stat-users').textContent = stats.totalUsers;
+      document.getElementById('stat-active').textContent = stats.activeToday;
+      document.getElementById('stat-interviews').textContent = stats.totalInterviews;
+      document.getElementById('stat-submissions').textContent = stats.totalSubmissions;
+
+      // Update Distribution
+      document.getElementById('dist-candidate').textContent = stats.totalCandidates;
+      document.getElementById('bar-candidate').style.width = `${(stats.totalCandidates / stats.totalUsers) * 100}%`;
+      
+      document.getElementById('dist-recruiter').textContent = stats.totalRecruiters;
+      document.getElementById('bar-recruiter').style.width = `${(stats.totalRecruiters / stats.totalUsers) * 100}%`;
+
+      // Render Logs Table
+      const tbody = document.getElementById('logs-table');
+      if (recentLogs.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="3" class="text-center">No recent logs.</td></tr>';
+      } else {
+        tbody.innerHTML = recentLogs.map(log => {
+          let badgeClass = log.level === 'error' ? 'badge-error' : log.level === 'warn' ? 'badge-warning' : 'badge-info';
+          return `
+            <tr>
+              <td><span class="badge ${badgeClass}">${log.level}</span></td>
+              <td style="font-family:var(--font-mono);font-size:0.8rem">${log.message}</td>
+              <td style="font-size:0.8rem">${timeAgo(log.created_at)}</td>
+            </tr>
+          `;
+        }).join('');
+      }
+
+      // Render Activity Chart
+      if (dailyActivity.length > 0) {
+        const ctx = document.getElementById('activityChart').getContext('2d');
+        const textColor = getComputedStyle(document.documentElement).getPropertyValue('--text-secondary').trim();
+        const gridColor = getComputedStyle(document.documentElement).getPropertyValue('--border-primary').trim();
+        const primaryColor = getComputedStyle(document.documentElement).getPropertyValue('--primary-500').trim();
+
+        const gradient = ctx.createLinearGradient(0, 0, 0, 300);
+        gradient.addColorStop(0, 'rgba(99, 102, 241, 0.5)');
+        gradient.addColorStop(1, 'rgba(99, 102, 241, 0.0)');
+
+        new Chart(ctx, {
+          type: 'line',
+          data: {
+            labels: dailyActivity.map(d => new Date(d.date).toLocaleDateString('en-US', {weekday: 'short'})),
+            datasets: [{
+              label: 'Actions',
+              data: dailyActivity.map(d => parseInt(d.count)),
+              borderColor: primaryColor,
+              backgroundColor: gradient,
+              borderWidth: 2,
+              pointBackgroundColor: primaryColor,
+              pointBorderColor: '#fff',
+              pointHoverBackgroundColor: '#fff',
+              pointHoverBorderColor: primaryColor,
+              pointRadius: 4,
+              fill: true,
+              tension: 0.4
+            }]
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            scales: {
+              y: {
+                beginAtZero: true,
+                grid: { color: gridColor },
+                ticks: { color: textColor }
+              },
+              x: {
+                grid: { display: false },
+                ticks: { color: textColor }
+              }
+            },
+            plugins: {
+              legend: { display: false }
+            }
+          }
+        });
+      }
+    }
+  </script>
+</body>
+</html>

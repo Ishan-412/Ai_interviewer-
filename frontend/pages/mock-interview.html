@@ -1,0 +1,289 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Mock Interview — AI Interview Platform</title>
+  <link rel="stylesheet" href="/css/global.css">
+  <link rel="stylesheet" href="/css/pages.css">
+</head>
+<body>
+  
+  <div class="sidebar-overlay"></div>
+  <div class="app-layout">
+    <aside class="sidebar"></aside>
+
+    <main class="main-content">
+      <header class="top-header">
+        <div class="header-left">
+          <button class="mobile-menu-btn">☰</button>
+          <div>
+            <h2 class="page-title">Mock Interview</h2>
+            <div class="breadcrumb">AI-driven technical & HR assessment</div>
+          </div>
+        </div>
+        <div class="header-right">
+          <div style="text-align:right">
+            <div style="font-weight:600;font-size:0.9rem" id="user-name">Loading...</div>
+            <div style="font-size:0.75rem;color:var(--text-tertiary)">Candidate</div>
+          </div>
+          <div class="avatar" id="user-avatar">C</div>
+        </div>
+      </header>
+
+      <div class="page-content">
+        <div class="interview-container">
+          
+          <!-- Setup State -->
+          <div id="setup-state" class="card animate-slide-up text-center" style="padding:var(--space-3xl)">
+            <div style="font-size:4rem;margin-bottom:var(--space-md)">🎤</div>
+            <h2 style="margin-bottom:var(--space-sm)">Start AI Mock Interview</h2>
+            <p style="color:var(--text-secondary);max-width:500px;margin:0 auto var(--space-xl)">
+              Our AI engine will ask you 10 questions across HR, technical, and behavioral domains. Your answers will be analyzed for keywords, depth, and relevance.
+            </p>
+            
+            <div class="form-group" style="max-width:300px;margin:0 auto var(--space-xl)">
+              <label class="form-label" style="text-align:left">Interview Category</label>
+              <select id="interview-category" class="form-select">
+                <option value="mixed">Mixed (HR + Technical)</option>
+                <option value="technical">Technical Only</option>
+                <option value="hr">HR / Behavioral Only</option>
+                <option value="system_design">System Design</option>
+              </select>
+            </div>
+
+            <button id="start-btn" class="btn btn-primary btn-lg" onclick="startInterview()">
+              Start Interview
+            </button>
+          </div>
+
+          <!-- Interview State -->
+          <div id="interview-state" class="hidden">
+            <div class="card" style="margin-bottom:var(--space-md);padding:var(--space-md) var(--space-lg)">
+              <div style="display:flex;justify-content:space-between;align-items:center">
+                <div style="font-weight:600;color:var(--primary-400)">Question <span id="q-current">1</span> of <span id="q-total">10</span></div>
+                <div class="badge badge-warning" id="q-category">Technical</div>
+              </div>
+            </div>
+
+            <div class="interview-chat" id="chat-container">
+              <!-- Chat bubbles will go here -->
+            </div>
+
+            <div class="interview-input-area">
+              <div class="interview-input-container">
+                <textarea id="answer-input" class="form-textarea" placeholder="Type your answer here... Be detailed and use relevant technical terms." rows="3"></textarea>
+                <button id="submit-answer-btn" class="btn btn-primary" onclick="submitAnswer()" style="height:auto">
+                  <span style="font-size:1.5rem">📤</span>
+                </button>
+              </div>
+              <div style="display:flex;justify-content:space-between;align-items:center;margin-top:var(--space-sm)">
+                <small style="color:var(--text-tertiary)">Press Ctrl+Enter to submit</small>
+                <button id="finish-btn" class="btn btn-danger btn-sm hidden" onclick="finishInterview()">Finish Interview Early</button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Result State -->
+          <div id="result-state" class="hidden animate-slide-up">
+            <div class="card text-center" style="margin-bottom:var(--space-xl)">
+              <h2 style="margin-bottom:var(--space-md)">Interview Completed! 🎉</h2>
+              <div class="score-gauge" style="margin:0 auto var(--space-lg);--score:0" id="final-score-gauge">
+                <div class="score-gauge-value" id="final-score">0</div>
+              </div>
+              <p style="color:var(--text-secondary);max-width:600px;margin:0 auto">
+                Your answers have been analyzed. Here is your detailed AI feedback.
+              </p>
+            </div>
+
+            <div class="grid-2">
+              <div class="card">
+                <h3 class="card-title" style="margin-bottom:var(--space-md);color:var(--success)">Key Strengths</h3>
+                <ul id="strengths-list" style="padding-left:var(--space-lg);color:var(--text-secondary);line-height:1.6"></ul>
+              </div>
+              <div class="card">
+                <h3 class="card-title" style="margin-bottom:var(--space-md);color:var(--warning)">Areas for Improvement</h3>
+                <ul id="weaknesses-list" style="padding-left:var(--space-lg);color:var(--text-secondary);line-height:1.6"></ul>
+              </div>
+            </div>
+
+            <div class="card" style="margin-top:var(--space-xl)">
+              <h3 class="card-title" style="margin-bottom:var(--space-md)">Actionable Recommendations</h3>
+              <ul id="recommendations-list" style="padding-left:var(--space-lg);color:var(--text-secondary);line-height:1.6"></ul>
+            </div>
+
+            <div class="text-center" style="margin-top:var(--space-xl)">
+              <a href="/candidate-dashboard" class="btn btn-primary">Return to Dashboard</a>
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <script src="/js/api.js"></script>
+  <script src="/js/components.js"></script>
+  <script>
+    let sessionId = null;
+    let questions = [];
+    let currentIdx = 0;
+
+    document.addEventListener('DOMContentLoaded', () => {
+      initDashboardPage('mock-interview');
+
+      // Ctrl+Enter shortcut
+      document.getElementById('answer-input').addEventListener('keydown', (e) => {
+        if (e.ctrlKey && e.key === 'Enter') {
+          submitAnswer();
+        }
+      });
+    });
+
+    async function startInterview() {
+      const category = document.getElementById('interview-category').value;
+      const btn = document.getElementById('start-btn');
+      
+      btn.disabled = true;
+      btn.innerHTML = '<div class="spinner spinner-sm"></div> Starting...';
+
+      const res = await api.post('/interviews/start', { category });
+
+      if (res.success) {
+        sessionId = res.data.sessionId;
+        questions = res.data.questions;
+        currentIdx = 0;
+
+        document.getElementById('setup-state').classList.add('hidden');
+        document.getElementById('interview-state').classList.remove('hidden');
+        document.getElementById('q-total').textContent = questions.length;
+        
+        showNextQuestion();
+      } else {
+        btn.disabled = false;
+        btn.innerHTML = 'Start Interview';
+        toast.error(res.message);
+      }
+    }
+
+    function showNextQuestion() {
+      if (currentIdx >= questions.length) {
+        finishInterview();
+        return;
+      }
+
+      const q = questions[currentIdx];
+      document.getElementById('q-current').textContent = currentIdx + 1;
+      document.getElementById('q-category').textContent = q.category.toUpperCase();
+      
+      addChatBubble('system', q.questionText);
+      
+      const input = document.getElementById('answer-input');
+      input.value = '';
+      input.focus();
+
+      if (currentIdx === questions.length - 1) {
+        document.getElementById('finish-btn').classList.remove('hidden');
+      }
+    }
+
+    async function submitAnswer() {
+      const answerText = document.getElementById('answer-input').value.trim();
+      if (!answerText) {
+        toast.warning('Please provide an answer.');
+        return;
+      }
+
+      if (answerText.length < 20) {
+        toast.warning('Answer is too short. Please provide more detail.');
+        return;
+      }
+
+      const q = questions[currentIdx];
+      const btn = document.getElementById('submit-answer-btn');
+      
+      // UI Update
+      addChatBubble('user', answerText);
+      document.getElementById('answer-input').value = '';
+      btn.disabled = true;
+      btn.innerHTML = '<div class="spinner spinner-sm"></div>';
+
+      // API Call
+      const res = await api.post(`/interviews/${sessionId}/answer`, {
+        questionId: q.id,
+        answerText
+      });
+
+      btn.disabled = false;
+      btn.innerHTML = '<span style="font-size:1.5rem">📤</span>';
+
+      if (res.success) {
+        // Show AI Feedback
+        const eval = res.data;
+        const color = getScoreColor(eval.score);
+        
+        let feedbackHtml = `
+          <div style="font-weight:600;color:${color};margin-bottom:8px">Score: ${eval.score}/100</div>
+          <div style="margin-bottom:8px">${eval.feedback}</div>
+        `;
+
+        if (eval.matchedKeywords.length > 0) {
+          feedbackHtml += `<div style="margin-bottom:4px"><strong style="color:var(--success)">Matched Keywords:</strong> ${eval.matchedKeywords.join(', ')}</div>`;
+        }
+        if (eval.missedKeywords.length > 0) {
+          feedbackHtml += `<div><strong style="color:var(--error)">Missed Keywords:</strong> ${eval.missedKeywords.join(', ')}</div>`;
+        }
+
+        addChatBubble('feedback', feedbackHtml);
+
+        currentIdx++;
+        setTimeout(showNextQuestion, 1500);
+      } else {
+        toast.error(res.message);
+      }
+    }
+
+    async function finishInterview() {
+      document.getElementById('interview-state').classList.add('hidden');
+      document.getElementById('setup-state').classList.remove('hidden');
+      document.getElementById('setup-state').innerHTML = '<div class="loading-overlay"><div class="spinner"></div><div>Generating your AI evaluation report...</div></div>';
+
+      const res = await api.post(`/interviews/${sessionId}/complete`, {});
+
+      if (res.success) {
+        const summary = res.data;
+        
+        document.getElementById('setup-state').classList.add('hidden');
+        document.getElementById('result-state').classList.remove('hidden');
+        
+        document.getElementById('final-score').textContent = summary.overallScore;
+        document.getElementById('final-score-gauge').style.setProperty('--score', summary.overallScore);
+        
+        document.getElementById('strengths-list').innerHTML = summary.strengths.map(s => `<li>${s}</li>`).join('');
+        document.getElementById('weaknesses-list').innerHTML = summary.weaknesses.map(s => `<li>${s}</li>`).join('');
+        document.getElementById('recommendations-list').innerHTML = summary.recommendations.map(s => `<li>${s}</li>`).join('');
+        
+      } else {
+        toast.error('Failed to complete interview.');
+      }
+    }
+
+    function addChatBubble(type, content) {
+      const container = document.getElementById('chat-container');
+      const bubble = document.createElement('div');
+      bubble.className = `chat-bubble ${type}`;
+      
+      if (type === 'system') {
+        bubble.innerHTML = `<div style="font-weight:700;color:var(--primary-400);margin-bottom:4px;font-size:0.8rem">AI Interviewer</div>${content}`;
+      } else if (type === 'user') {
+        bubble.innerHTML = `<div style="font-weight:700;color:var(--text-secondary);margin-bottom:4px;font-size:0.8rem">You</div>${content}`;
+      } else if (type === 'feedback') {
+        bubble.innerHTML = `<div style="font-weight:700;color:var(--success);margin-bottom:4px;font-size:0.8rem">AI Feedback</div>${content}`;
+      }
+      
+      container.appendChild(bubble);
+      window.scrollTo(0, document.body.scrollHeight);
+    }
+  </script>
+</body>
+</html>

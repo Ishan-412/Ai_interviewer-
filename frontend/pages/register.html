@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Register — AI Interview Platform</title>
+  <link rel="stylesheet" href="/css/global.css">
+  <link rel="stylesheet" href="/css/pages.css">
+</head>
+<body>
+  
+  <div class="auth-page">
+    <div class="auth-container animate-slide-up" style="max-width: 500px;">
+      <div class="auth-card">
+        <div class="auth-logo">
+          <div class="auth-logo-icon">AI</div>
+          <div class="auth-logo-text">Interview Platform</div>
+        </div>
+        
+        <h1 class="auth-title">Create an account</h1>
+        <p class="auth-subtitle">Join the next generation of recruitment</p>
+
+        <form id="registerForm" class="auth-form">
+          <div class="form-group">
+            <label class="form-label">I am a</label>
+            <div class="role-selector">
+              <div class="role-option active" data-role="candidate" onclick="selectRole('candidate')">
+                <span class="role-option-icon">👨‍🎓</span>
+                Candidate
+              </div>
+              <div class="role-option" data-role="recruiter" onclick="selectRole('recruiter')">
+                <span class="role-option-icon">👨‍💼</span>
+                Recruiter
+              </div>
+            </div>
+            <input type="hidden" id="role" value="candidate">
+          </div>
+
+          <div class="grid-2">
+            <div class="form-group">
+              <label class="form-label" for="firstName">First name</label>
+              <input type="text" id="firstName" class="form-input" required>
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="lastName">Last name</label>
+              <input type="text" id="lastName" class="form-input" required>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="email">Email address</label>
+            <input type="email" id="email" class="form-input" placeholder="name@example.com" required>
+          </div>
+          
+          <div class="form-group">
+            <label class="form-label" for="password">Password</label>
+            <div class="password-toggle">
+              <input type="password" id="password" class="form-input" placeholder="••••••••" required minlength="6">
+              <button type="button" class="toggle-btn" onclick="togglePassword('password')">👁️</button>
+            </div>
+            <small style="color:var(--text-tertiary);margin-top:4px;display:block">Must be at least 6 characters</small>
+          </div>
+
+          <button type="submit" class="btn btn-primary w-full btn-lg" id="submitBtn">
+            Create Account
+          </button>
+        </form>
+
+        <div class="auth-divider">or</div>
+
+        <div class="auth-footer">
+          Already have an account? <a href="/login">Sign in</a>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="/js/api.js"></script>
+  <script src="/js/components.js"></script>
+  <script>
+    // Pre-select role from URL if present
+    const urlParams = new URLSearchParams(window.location.search);
+    if (urlParams.get('role') === 'recruiter') {
+      selectRole('recruiter');
+    }
+
+    function togglePassword(id) {
+      const input = document.getElementById(id);
+      input.type = input.type === 'password' ? 'text' : 'password';
+    }
+
+    function selectRole(role) {
+      document.querySelectorAll('.role-option').forEach(el => el.classList.remove('active'));
+      document.querySelector(`.role-option[data-role="${role}"]`).classList.add('active');
+      document.getElementById('role').value = role;
+    }
+
+    document.getElementById('registerForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      
+      const firstName = document.getElementById('firstName').value;
+      const lastName = document.getElementById('lastName').value;
+      const email = document.getElementById('email').value;
+      const password = document.getElementById('password').value;
+      const role = document.getElementById('role').value;
+      const btn = document.getElementById('submitBtn');
+      
+      btn.disabled = true;
+      btn.innerHTML = '<div class="spinner spinner-sm"></div> Creating account...';
+
+      const result = await api.post('/auth/register', { firstName, lastName, email, password, role });
+
+      btn.disabled = false;
+      btn.innerHTML = 'Create Account';
+
+      if (result.success) {
+        api.setTokens(result.data.accessToken, result.data.refreshToken);
+        api.setUser(result.data.user);
+        toast.success('Account created successfully!');
+        
+        setTimeout(() => {
+          window.location.href = `/${result.data.user.role}-dashboard`;
+        }, 1000);
+      } else {
+        toast.error(result.message || 'Registration failed. Please try again.');
+      }
+    });
+  </script>
+</body>
+</html>

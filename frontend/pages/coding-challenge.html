@@ -1,0 +1,264 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Coding Challenges — AI Interview Platform</title>
+  <link rel="stylesheet" href="/css/global.css">
+  <link rel="stylesheet" href="/css/pages.css">
+</head>
+<body>
+  
+  <div class="sidebar-overlay"></div>
+  <div class="app-layout">
+    <aside class="sidebar"></aside>
+
+    <main class="main-content">
+      <header class="top-header" id="main-header">
+        <div class="header-left">
+          <button class="mobile-menu-btn">☰</button>
+          <div>
+            <h2 class="page-title">Coding Challenges</h2>
+            <div class="breadcrumb">Practice algorithmic problem solving</div>
+          </div>
+        </div>
+        <div class="header-right">
+          <div style="text-align:right">
+            <div style="font-weight:600;font-size:0.9rem" id="user-name">Loading...</div>
+            <div style="font-size:0.75rem;color:var(--text-tertiary)">Candidate</div>
+          </div>
+          <div class="avatar" id="user-avatar">C</div>
+        </div>
+      </header>
+
+      <!-- Problem List View -->
+      <div class="page-content" id="list-view">
+        <div class="card">
+          <div class="table-container">
+            <table>
+              <thead>
+                <tr>
+                  <th style="width:40px">Status</th>
+                  <th>Title</th>
+                  <th>Difficulty</th>
+                  <th>Success Rate</th>
+                  <th>Action</th>
+                </tr>
+              </thead>
+              <tbody id="problems-table">
+                <tr><td colspan="5" class="text-center">Loading...</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- Editor View -->
+      <div id="editor-view" class="hidden">
+        <div class="coding-layout">
+          <!-- Problem Description -->
+          <div class="problem-panel">
+            <button class="btn btn-ghost btn-sm" onclick="backToList()" style="margin-bottom:var(--space-md)">← Back to List</button>
+            
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:var(--space-md)">
+              <h2 id="prob-title">Loading...</h2>
+              <span id="prob-difficulty" class="badge"></span>
+            </div>
+            
+            <div class="tags-container" style="margin-bottom:var(--space-lg)" id="prob-tags"></div>
+            
+            <div style="line-height:1.7;color:var(--text-secondary);font-size:0.95rem;margin-bottom:var(--space-xl)" id="prob-desc"></div>
+            
+            <h4 style="margin-bottom:var(--space-sm)">Constraints:</h4>
+            <div style="background:var(--bg-tertiary);padding:var(--space-md);border-radius:var(--radius-md);font-family:var(--font-mono);font-size:0.85rem;margin-bottom:var(--space-xl)" id="prob-constraints"></div>
+            
+            <h4 style="margin-bottom:var(--space-sm)">Sample Input:</h4>
+            <div style="background:var(--bg-tertiary);padding:var(--space-md);border-radius:var(--radius-md);font-family:var(--font-mono);font-size:0.85rem;margin-bottom:var(--space-lg);white-space:pre-wrap" id="prob-input"></div>
+            
+            <h4 style="margin-bottom:var(--space-sm)">Sample Output:</h4>
+            <div style="background:var(--bg-tertiary);padding:var(--space-md);border-radius:var(--radius-md);font-family:var(--font-mono);font-size:0.85rem;margin-bottom:var(--space-lg);white-space:pre-wrap" id="prob-output"></div>
+          </div>
+
+          <!-- Code Editor -->
+          <div class="editor-panel">
+            <div class="editor-toolbar">
+              <select id="lang-select" class="form-select" style="width:150px;padding:6px 12px">
+                <option value="python">Python</option>
+                <option value="javascript">JavaScript</option>
+                <option value="java">Java</option>
+                <option value="cpp">C++</option>
+              </select>
+              
+              <div style="display:flex;gap:var(--space-sm)">
+                <button class="btn btn-secondary btn-sm" onclick="resetCode()">Reset</button>
+                <button class="btn btn-primary btn-sm" id="submit-btn" onclick="submitCode()">Run Code</button>
+              </div>
+            </div>
+
+            <textarea id="code-editor" class="code-editor" spellcheck="false" placeholder="Write your solution here..."></textarea>
+            
+            <div class="editor-output" id="output-panel">
+              <div style="color:var(--text-tertiary)">Output will appear here after execution...</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </main>
+  </div>
+
+  <script src="/js/api.js"></script>
+  <script src="/js/components.js"></script>
+  <script>
+    let currentProblemId = null;
+
+    const templates = {
+      python: 'def solve():\n    # Write your code here\n    pass\n\nif __name__ == "__main__":\n    solve()',
+      javascript: 'function solve() {\n    // Write your code here\n}\n\nsolve();',
+      java: 'import java.util.*;\n\npublic class Main {\n    public static void main(String[] args) {\n        // Write your code here\n    }\n}',
+      cpp: '#include <iostream>\nusing namespace std;\n\nint main() {\n    // Write your code here\n    return 0;\n}'
+    };
+
+    document.addEventListener('DOMContentLoaded', async () => {
+      initDashboardPage('coding-challenge');
+      await loadProblems();
+
+      document.getElementById('lang-select').addEventListener('change', (e) => {
+        const val = e.target.value;
+        const editor = document.getElementById('code-editor');
+        if (editor.value.trim() === '' || Object.values(templates).some(t => editor.value.includes(t.substring(0,20)))) {
+          editor.value = templates[val];
+        }
+      });
+    });
+
+    async function loadProblems() {
+      const res = await api.get('/coding/problems');
+      if (res.success) {
+        const tbody = document.getElementById('problems-table');
+        tbody.innerHTML = res.data.map(p => {
+          const diffColor = p.difficulty === 'easy' ? 'var(--success)' : p.difficulty === 'medium' ? 'var(--warning)' : 'var(--error)';
+          return `
+            <tr>
+              <td class="text-center">${p.solved ? '<span style="color:var(--success)">✓</span>' : ''}</td>
+              <td style="font-weight:500">${p.title}</td>
+              <td><span style="color:${diffColor};font-weight:600;text-transform:capitalize">${p.difficulty}</span></td>
+              <td>${p.success_rate || 0}%</td>
+              <td><button class="btn btn-secondary btn-sm" onclick="openProblem(${p.id})">Solve</button></td>
+            </tr>
+          `;
+        }).join('');
+      }
+    }
+
+    async function openProblem(id) {
+      toast.info('Loading problem...');
+      const res = await api.get(`/coding/problems/${id}`);
+      
+      if (res.success) {
+        const { problem } = res.data;
+        currentProblemId = problem.id;
+
+        document.getElementById('list-view').classList.add('hidden');
+        document.getElementById('main-header').classList.add('hidden');
+        document.getElementById('editor-view').classList.remove('hidden');
+
+        document.getElementById('prob-title').textContent = problem.title;
+        
+        const diffEl = document.getElementById('prob-difficulty');
+        diffEl.textContent = problem.difficulty;
+        diffEl.className = `badge badge-${problem.difficulty}`;
+
+        document.getElementById('prob-desc').innerHTML = problem.description.replace(/\n/g, '<br>');
+        document.getElementById('prob-constraints').innerHTML = problem.constraints_text.replace(/\n/g, '<br>');
+        document.getElementById('prob-input').textContent = problem.sample_input;
+        document.getElementById('prob-output').textContent = problem.sample_output;
+
+        if (problem.tags && problem.tags.length > 0) {
+          document.getElementById('prob-tags').innerHTML = problem.tags.map(t => `<span class="tag">${t}</span>`).join('');
+        }
+
+        resetCode();
+        document.getElementById('output-panel').innerHTML = '<div style="color:var(--text-tertiary)">Output will appear here after execution...</div>';
+      }
+    }
+
+    function backToList() {
+      document.getElementById('editor-view').classList.add('hidden');
+      document.getElementById('list-view').classList.remove('hidden');
+      document.getElementById('main-header').classList.remove('hidden');
+      loadProblems(); // Refresh to update solved status
+    }
+
+    function resetCode() {
+      const lang = document.getElementById('lang-select').value;
+      document.getElementById('code-editor').value = templates[lang];
+    }
+
+    async function submitCode() {
+      const sourceCode = document.getElementById('code-editor').value;
+      const language = document.getElementById('lang-select').value;
+      const btn = document.getElementById('submit-btn');
+      const outputPanel = document.getElementById('output-panel');
+
+      if (!sourceCode.trim()) {
+        toast.warning('Please write some code before submitting.');
+        return;
+      }
+
+      btn.disabled = true;
+      btn.innerHTML = 'Running...';
+      outputPanel.innerHTML = '<div class="spinner spinner-sm"></div> <span style="margin-left:8px">Evaluating submission...</span>';
+
+      const res = await api.post('/coding/submit', {
+        problemId: currentProblemId,
+        sourceCode,
+        language
+      });
+
+      btn.disabled = false;
+      btn.innerHTML = 'Run Code';
+
+      if (res.success) {
+        const { status, score, testCasesPassed, totalTestCases, feedback } = res.data;
+        
+        let color = 'var(--text-primary)';
+        if (status === 'accepted') {
+          color = 'var(--success)';
+          toast.success('Solution accepted!');
+        } else if (status === 'wrong_answer') {
+          color = 'var(--warning)';
+          toast.warning('Wrong Answer');
+        } else {
+          color = 'var(--error)';
+          toast.error('Compilation or Runtime Error');
+        }
+
+        outputPanel.innerHTML = `
+          <div style="color:${color};font-weight:700;font-size:1.1rem;margin-bottom:8px">
+            ${status.replace(/_/g, ' ').toUpperCase()}
+          </div>
+          <div style="margin-bottom:4px">Test Cases Passed: <strong>${testCasesPassed}/${totalTestCases}</strong></div>
+          <div style="margin-bottom:4px">Score Awarded: <strong>${score}</strong></div>
+          <div style="margin-top:12px;padding-top:12px;border-top:1px solid var(--border-primary);color:var(--text-secondary)">
+            Feedback: ${feedback}
+          </div>
+        `;
+      } else {
+        outputPanel.innerHTML = `<div style="color:var(--error)">Error: ${res.message}</div>`;
+      }
+    }
+
+    // Allow Tab key in textarea
+    document.getElementById('code-editor').addEventListener('keydown', function(e) {
+      if (e.key === 'Tab') {
+        e.preventDefault();
+        const start = this.selectionStart;
+        const end = this.selectionEnd;
+        this.value = this.value.substring(0, start) + "    " + this.value.substring(end);
+        this.selectionStart = this.selectionEnd = start + 4;
+      }
+    });
+  </script>
+</body>
+</html>

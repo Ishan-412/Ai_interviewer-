@@ -1,0 +1,228 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Recruiter Dashboard — AI Interview Platform</title>
+  <link rel="stylesheet" href="/css/global.css">
+  <link rel="stylesheet" href="/css/pages.css">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+  
+  <div class="sidebar-overlay"></div>
+  <div class="app-layout">
+    <aside class="sidebar"></aside>
+
+    <main class="main-content">
+      <header class="top-header">
+        <div class="header-left">
+          <button class="mobile-menu-btn">☰</button>
+          <div>
+            <h2 class="page-title">Recruiter Dashboard</h2>
+            <div class="breadcrumb">Manage candidates and assessments</div>
+          </div>
+        </div>
+        <div class="header-right">
+          <div style="text-align:right">
+            <div style="font-weight:600;font-size:0.9rem" id="user-name">Loading...</div>
+            <div style="font-size:0.75rem;color:var(--text-tertiary)">Recruiter</div>
+          </div>
+          <div class="avatar" id="user-avatar">R</div>
+        </div>
+      </header>
+
+      <div class="page-content">
+        <!-- Stats Row -->
+        <div class="grid-4 stagger" style="margin-bottom:var(--space-xl)" id="stats-container">
+          <div class="stat-card">
+            <div style="display:flex;justify-content:space-between">
+              <div class="stat-icon blue">👥</div>
+            </div>
+            <div class="stat-value" id="stat-candidates">--</div>
+            <div class="stat-label">Total Candidates</div>
+          </div>
+          <div class="stat-card">
+            <div style="display:flex;justify-content:space-between">
+              <div class="stat-icon purple">📝</div>
+            </div>
+            <div class="stat-value" id="stat-assessments">--</div>
+            <div class="stat-label">Assessments Created</div>
+          </div>
+          <div class="stat-card">
+            <div style="display:flex;justify-content:space-between">
+              <div class="stat-icon green">📊</div>
+            </div>
+            <div class="stat-value" id="stat-attempts">--</div>
+            <div class="stat-label">Tests Completed</div>
+          </div>
+          <div class="stat-card">
+            <div style="display:flex;justify-content:space-between">
+              <div class="stat-icon orange">📈</div>
+            </div>
+            <div class="stat-value" id="stat-avg">76%</div>
+            <div class="stat-label">Average Platform Score</div>
+          </div>
+        </div>
+
+        <div class="grid" style="grid-template-columns:2fr 1fr;gap:var(--space-xl)">
+          <!-- Top Candidates Table -->
+          <div class="flex-col gap-lg animate-slide-up" style="animation-delay:0.3s">
+            <div class="card">
+              <div class="card-header">
+                <h3 class="card-title">Top Performing Candidates</h3>
+                <a href="#candidates" class="btn btn-ghost btn-sm">View All</a>
+              </div>
+              <div class="table-container">
+                <table>
+                  <thead>
+                    <tr>
+                      <th>Candidate</th>
+                      <th>Email</th>
+                      <th>College</th>
+                      <th>Overall Score</th>
+                      <th>Rank</th>
+                      <th>Action</th>
+                    </tr>
+                  </thead>
+                  <tbody id="candidates-table">
+                    <tr><td colspan="6" class="text-center">Loading...</td></tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+
+          <!-- Side Panel -->
+          <div class="flex-col gap-lg animate-slide-up" style="animation-delay:0.4s">
+            <div class="card">
+              <div class="card-header">
+                <h3 class="card-title">Score Distribution</h3>
+              </div>
+              <div class="chart-container" style="height:250px">
+                <canvas id="distributionChart"></canvas>
+              </div>
+            </div>
+
+            <div class="card card-glass">
+              <div class="card-header">
+                <h3 class="card-title">Recent Activity</h3>
+              </div>
+              <div id="activity-feed" style="display:flex;flex-direction:column;gap:1rem;font-size:0.85rem">
+                Loading...
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <script src="/js/api.js"></script>
+  <script src="/js/components.js"></script>
+  <script>
+    document.addEventListener('DOMContentLoaded', async () => {
+      initDashboardPage('recruiter-dashboard');
+      await loadDashboardData();
+    });
+
+    async function loadDashboardData() {
+      const res = await api.get('/recruiters/dashboard');
+      if (!res.success) {
+        toast.error('Failed to load dashboard data');
+        return;
+      }
+
+      const { stats, topCandidates, scoreDistribution, recentActivity } = res.data;
+
+      // Update Stats
+      document.getElementById('stat-candidates').textContent = stats.totalCandidates;
+      document.getElementById('stat-assessments').textContent = stats.totalAssessments;
+      document.getElementById('stat-attempts').textContent = stats.totalAttempts;
+
+      // Render Top Candidates Table
+      const tbody = document.getElementById('candidates-table');
+      if (topCandidates.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="6" class="text-center">No candidates found.</td></tr>';
+      } else {
+        tbody.innerHTML = topCandidates.map((c, i) => `
+          <tr>
+            <td>
+              <div style="display:flex;align-items:center;gap:10px">
+                <div class="avatar" style="width:30px;height:30px;font-size:0.8rem">${c.first_name[0]}</div>
+                <span style="font-weight:500">${c.first_name} ${c.last_name}</span>
+              </div>
+            </td>
+            <td>${c.email}</td>
+            <td>${c.college || 'N/A'}</td>
+            <td>
+              <span style="font-weight:700;color:${getScoreColor(c.overall_score)}">${c.overall_score}</span>/100
+            </td>
+            <td><span class="badge badge-primary">#${c.global_rank}</span></td>
+            <td>
+              <button class="btn btn-secondary btn-sm" onclick="viewCandidate(${c.user_id})">View Profile</button>
+            </td>
+          </tr>
+        `).join('');
+      }
+
+      // Render Activity Feed
+      const feed = document.getElementById('activity-feed');
+      if (recentActivity.length === 0) {
+        feed.innerHTML = '<div class="text-center" style="color:var(--text-tertiary)">No recent activity.</div>';
+      } else {
+        feed.innerHTML = recentActivity.map(act => {
+          const actionText = act.action.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+          return `
+            <div style="display:flex;align-items:flex-start;gap:12px;padding-bottom:12px;border-bottom:1px solid var(--border-primary)">
+              <div style="color:var(--primary-400);margin-top:2px">●</div>
+              <div>
+                <div style="font-weight:500;color:var(--text-primary)">
+                  ${act.first_name} ${act.last_name} <span style="font-weight:400;color:var(--text-secondary)">completed</span> ${actionText}
+                </div>
+                <div style="color:var(--text-tertiary);font-size:0.75rem;margin-top:2px">${timeAgo(act.created_at)}</div>
+              </div>
+            </div>
+          `;
+        }).join('');
+      }
+
+      // Render Distribution Chart
+      if (scoreDistribution.length > 0) {
+        const ctx = document.getElementById('distributionChart').getContext('2d');
+        const textColor = getComputedStyle(document.documentElement).getPropertyValue('--text-primary').trim();
+        const colors = ['#10b981', '#3b82f6', '#f59e0b', '#ef4444'];
+        
+        new Chart(ctx, {
+          type: 'doughnut',
+          data: {
+            labels: scoreDistribution.map(d => d.range),
+            datasets: [{
+              data: scoreDistribution.map(d => parseInt(d.count)),
+              backgroundColor: colors,
+              borderWidth: 0,
+              hoverOffset: 4
+            }]
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            cutout: '70%',
+            plugins: {
+              legend: {
+                position: 'bottom',
+                labels: { color: textColor, padding: 15, font: { family: 'Inter', size: 11 } }
+              }
+            }
+          }
+        });
+      }
+    }
+
+    function viewCandidate(id) {
+      toast.info('Candidate profile view logic here.');
+      // window.location.href = `/recruiter/candidate/${id}`;
+    }
+  </script>
+</body>
+</html>

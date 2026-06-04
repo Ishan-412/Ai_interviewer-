@@ -1,0 +1,279 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Aptitude Tests — AI Interview Platform</title>
+  <link rel="stylesheet" href="/css/global.css">
+  <link rel="stylesheet" href="/css/pages.css">
+</head>
+<body>
+  
+  <div class="sidebar-overlay"></div>
+  <div class="app-layout">
+    <aside class="sidebar"></aside>
+
+    <main class="main-content">
+      <header class="top-header">
+        <div class="header-left">
+          <button class="mobile-menu-btn">☰</button>
+          <div>
+            <h2 class="page-title">Aptitude Tests</h2>
+            <div class="breadcrumb">Assess your logical and quantitative skills</div>
+          </div>
+        </div>
+        <div class="header-right">
+          <div style="text-align:right">
+            <div style="font-weight:600;font-size:0.9rem" id="user-name">Loading...</div>
+            <div style="font-size:0.75rem;color:var(--text-tertiary)">Candidate</div>
+          </div>
+          <div class="avatar" id="user-avatar">C</div>
+        </div>
+      </header>
+
+      <div class="page-content" id="list-view">
+        <div class="grid-3 stagger" id="assessments-grid">
+          <!-- Assessments injected here -->
+        </div>
+      </div>
+
+      <!-- Test Taking View (Hidden initially) -->
+      <div id="test-view" class="hidden">
+        <div class="test-header">
+          <div>
+            <h3 id="test-title" style="margin-bottom:4px">Test Title</h3>
+            <div class="question-progress">Question <span id="q-curr">1</span> of <span id="q-tot">--</span></div>
+          </div>
+          <div class="timer" id="timer">
+            ⏱️ <span id="time-display">00:00</span>
+          </div>
+        </div>
+
+        <div class="page-content">
+          <div class="question-card card">
+            <div class="question-number">Question <span id="q-num">1</span></div>
+            <div class="question-text" id="q-text">Loading question...</div>
+            
+            <div class="option-list" id="options-list">
+              <!-- Options injected here -->
+            </div>
+
+            <div class="question-nav">
+              <button class="btn btn-secondary" id="btn-prev" onclick="prevQuestion()" disabled>Previous</button>
+              <button class="btn btn-primary" id="btn-next" onclick="nextQuestion()">Next</button>
+              <button class="btn btn-success hidden" id="btn-submit" onclick="submitTest()">Submit Test</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Result View -->
+      <div id="result-view" class="hidden page-content animate-slide-up">
+        <div class="card text-center" style="max-width:600px;margin:0 auto">
+          <h2>Test Completed!</h2>
+          <div class="score-gauge" style="margin:var(--space-xl) auto;--score:0" id="test-score-gauge">
+            <div class="score-gauge-value" id="test-score">0%</div>
+          </div>
+          <div class="grid-3" style="margin-bottom:var(--space-xl);text-align:center">
+            <div>
+              <div style="font-size:1.5rem;font-weight:800;color:var(--success)" id="res-correct">0</div>
+              <div style="font-size:0.8rem;color:var(--text-tertiary)">Correct</div>
+            </div>
+            <div>
+              <div style="font-size:1.5rem;font-weight:800;color:var(--error)" id="res-wrong">0</div>
+              <div style="font-size:0.8rem;color:var(--text-tertiary)">Wrong</div>
+            </div>
+            <div>
+              <div style="font-size:1.5rem;font-weight:800;color:var(--text-secondary)" id="res-unanswered">0</div>
+              <div style="font-size:0.8rem;color:var(--text-tertiary)">Unanswered</div>
+            </div>
+          </div>
+          <button class="btn btn-primary" onclick="location.reload()">Return to Tests</button>
+        </div>
+      </div>
+
+    </main>
+  </div>
+
+  <script src="/js/api.js"></script>
+  <script src="/js/components.js"></script>
+  <script>
+    let currentTest = null;
+    let currentQuestions = [];
+    let currentQIdx = 0;
+    let answers = {}; // { qId: selectedOptionId }
+    let timerInterval = null;
+    let timeRemaining = 0;
+
+    document.addEventListener('DOMContentLoaded', async () => {
+      initDashboardPage('aptitude-test');
+      await loadAssessments();
+    });
+
+    async function loadAssessments() {
+      const res = await api.get('/tests');
+      if (res.success) {
+        const grid = document.getElementById('assessments-grid');
+        grid.innerHTML = res.data.map(test => `
+          <div class="card">
+            <div class="card-header">
+              <span class="badge badge-primary" style="text-transform:capitalize">${test.category}</span>
+              ${getDifficultyBadge(test.difficulty)}
+            </div>
+            <h3 class="card-title" style="margin-bottom:var(--space-xs)">${test.title}</h3>
+            <p style="font-size:0.85rem;margin-bottom:var(--space-md);height:40px;overflow:hidden">${test.description}</p>
+            
+            <div style="display:flex;gap:var(--space-md);font-size:0.8rem;color:var(--text-tertiary);margin-bottom:var(--space-lg)">
+              <div style="display:flex;align-items:center;gap:4px">⏱️ ${test.duration_minutes}m</div>
+              <div style="display:flex;align-items:center;gap:4px">❓ ${test.total_questions} Qs</div>
+              <div style="display:flex;align-items:center;gap:4px">💯 ${test.total_marks} Marks</div>
+            </div>
+
+            <button class="btn btn-primary w-full" onclick="startTest(${test.id})">Start Assessment</button>
+          </div>
+        `).join('');
+      }
+    }
+
+    async function startTest(id) {
+      toast.info('Loading test...');
+      const res = await api.get(`/tests/${id}`);
+      
+      if (res.success) {
+        currentTest = res.data.assessment;
+        currentQuestions = res.data.questions;
+        currentQIdx = 0;
+        answers = {};
+        
+        document.getElementById('list-view').classList.add('hidden');
+        document.querySelector('.top-header').classList.add('hidden');
+        document.getElementById('test-view').classList.remove('hidden');
+
+        document.getElementById('test-title').textContent = currentTest.title;
+        document.getElementById('q-tot').textContent = currentQuestions.length;
+
+        timeRemaining = currentTest.duration_minutes * 60;
+        startTimer();
+        renderQuestion();
+      } else {
+        toast.error('Failed to load test.');
+      }
+    }
+
+    function renderQuestion() {
+      const q = currentQuestions[currentQIdx];
+      document.getElementById('q-curr').textContent = currentQIdx + 1;
+      document.getElementById('q-num').textContent = currentQIdx + 1;
+      document.getElementById('q-text').textContent = q.question_text;
+
+      const optionsList = document.getElementById('options-list');
+      optionsList.innerHTML = q.options.map((opt, i) => {
+        const isSelected = answers[q.id] === opt.id;
+        const letter = String.fromCharCode(65 + i);
+        return `
+          <div class="option-item ${isSelected ? 'selected' : ''}" onclick="selectOption('${q.id}', '${opt.id}')">
+            <div class="option-marker">${letter}</div>
+            <div>${opt.text}</div>
+          </div>
+        `;
+      }).join('');
+
+      document.getElementById('btn-prev').disabled = currentQIdx === 0;
+      
+      if (currentQIdx === currentQuestions.length - 1) {
+        document.getElementById('btn-next').classList.add('hidden');
+        document.getElementById('btn-submit').classList.remove('hidden');
+      } else {
+        document.getElementById('btn-next').classList.remove('hidden');
+        document.getElementById('btn-submit').classList.add('hidden');
+      }
+    }
+
+    function selectOption(qId, optId) {
+      answers[qId] = optId;
+      renderQuestion(); // Re-render to show selection
+    }
+
+    function nextQuestion() {
+      if (currentQIdx < currentQuestions.length - 1) {
+        currentQIdx++;
+        renderQuestion();
+      }
+    }
+
+    function prevQuestion() {
+      if (currentQIdx > 0) {
+        currentQIdx--;
+        renderQuestion();
+      }
+    }
+
+    function startTimer() {
+      updateTimerDisplay();
+      timerInterval = setInterval(() => {
+        timeRemaining--;
+        updateTimerDisplay();
+        
+        if (timeRemaining <= 300) { // 5 mins left
+          document.getElementById('timer').classList.add('warning');
+        }
+        if (timeRemaining <= 60) { // 1 min left
+          document.getElementById('timer').classList.replace('warning', 'danger');
+        }
+        
+        if (timeRemaining <= 0) {
+          clearInterval(timerInterval);
+          toast.warning('Time is up! Auto-submitting...');
+          submitTest();
+        }
+      }, 1000);
+    }
+
+    function updateTimerDisplay() {
+      const m = Math.floor(timeRemaining / 60).toString().padStart(2, '0');
+      const s = (timeRemaining % 60).toString().padStart(2, '0');
+      document.getElementById('time-display').textContent = `${m}:${s}`;
+    }
+
+    async function submitTest() {
+      clearInterval(timerInterval);
+      
+      const btn = document.getElementById('btn-submit');
+      btn.disabled = true;
+      btn.innerHTML = 'Submitting...';
+
+      const formattedAnswers = Object.entries(answers).map(([questionId, selectedAnswer]) => ({
+        questionId: parseInt(questionId),
+        selectedAnswer
+      }));
+
+      const timeTaken = (currentTest.duration_minutes * 60) - timeRemaining;
+
+      const res = await api.post(`/tests/${currentTest.id}/attempt`, {
+        answers: formattedAnswers,
+        timeTakenSeconds: timeTaken
+      });
+
+      if (res.success) {
+        document.getElementById('test-view').classList.add('hidden');
+        document.querySelector('.top-header').classList.remove('hidden');
+        document.getElementById('result-view').classList.remove('hidden');
+
+        const r = res.data;
+        document.getElementById('test-score').textContent = `${r.percentage}%`;
+        document.getElementById('test-score-gauge').style.setProperty('--score', r.percentage);
+        
+        document.getElementById('res-correct').textContent = r.correctCount;
+        document.getElementById('res-wrong').textContent = r.wrongCount;
+        document.getElementById('res-unanswered').textContent = r.unanswered;
+
+        toast.success(res.message);
+      } else {
+        toast.error('Failed to submit test.');
+        btn.disabled = false;
+        btn.innerHTML = 'Submit Test';
+      }
+    }
+  </script>
+</body>
+</html>

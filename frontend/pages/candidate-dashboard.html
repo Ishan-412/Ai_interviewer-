@@ -1,0 +1,276 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Candidate Dashboard — AI Interview Platform</title>
+  <link rel="stylesheet" href="/css/global.css">
+  <link rel="stylesheet" href="/css/pages.css">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+  
+  <div class="sidebar-overlay"></div>
+  <div class="app-layout">
+    <aside class="sidebar"></aside>
+
+    <main class="main-content">
+      <header class="top-header">
+        <div class="header-left">
+          <button class="mobile-menu-btn">☰</button>
+          <div>
+            <h2 class="page-title">Dashboard</h2>
+            <div class="breadcrumb">Overview of your interview performance</div>
+          </div>
+        </div>
+        <div class="header-right">
+          <div style="text-align:right">
+            <div style="font-weight:600;font-size:0.9rem" id="user-name">Loading...</div>
+            <div style="font-size:0.75rem;color:var(--text-tertiary)">Candidate</div>
+          </div>
+          <div class="avatar" id="user-avatar">A</div>
+        </div>
+      </header>
+
+      <div class="page-content">
+        <div class="dashboard-welcome animate-slide-up">
+          <h2>Welcome back! 👋</h2>
+          <p class="welcome-text">Here is your overall performance standing.</p>
+        </div>
+
+        <!-- Stats Row -->
+        <div class="grid-4 stagger" style="margin-bottom:var(--space-xl)" id="stats-container">
+          <div class="stat-card">
+            <div style="display:flex;justify-content:space-between">
+              <div class="stat-icon purple">🏆</div>
+              <div class="stat-change positive">+2 ranks</div>
+            </div>
+            <div class="stat-value">--</div>
+            <div class="stat-label">Global Rank</div>
+          </div>
+          <div class="stat-card">
+            <div style="display:flex;justify-content:space-between">
+              <div class="stat-icon blue">💯</div>
+            </div>
+            <div class="stat-value">--</div>
+            <div class="stat-label">Overall Score</div>
+          </div>
+          <div class="stat-card">
+            <div style="display:flex;justify-content:space-between">
+              <div class="stat-icon green">📝</div>
+            </div>
+            <div class="stat-value">--</div>
+            <div class="stat-label">Tests Completed</div>
+          </div>
+          <div class="stat-card">
+            <div style="display:flex;justify-content:space-between">
+              <div class="stat-icon orange">💻</div>
+            </div>
+            <div class="stat-value">--</div>
+            <div class="stat-label">Problems Solved</div>
+          </div>
+        </div>
+
+        <div class="grid" style="grid-template-columns:2fr 1fr;gap:var(--space-xl)">
+          <!-- Charts & Main Content -->
+          <div class="flex-col gap-lg animate-slide-up" style="animation-delay:0.3s">
+            <div class="card">
+              <div class="card-header">
+                <h3 class="card-title">Performance Breakdown</h3>
+              </div>
+              <div class="chart-container">
+                <canvas id="radarChart"></canvas>
+              </div>
+            </div>
+
+            <div class="card">
+              <div class="card-header">
+                <h3 class="card-title">Recent Activity</h3>
+                <a href="/profile" class="btn btn-ghost btn-sm">View All</a>
+              </div>
+              <div class="table-container">
+                <table>
+                  <thead>
+                    <tr>
+                      <th>Activity</th>
+                      <th>Date</th>
+                      <th>Status</th>
+                      <th>Score</th>
+                    </tr>
+                  </thead>
+                  <tbody id="activity-table">
+                    <tr><td colspan="4" class="text-center">Loading...</td></tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+
+          <!-- Sidebar Cards -->
+          <div class="flex-col gap-lg animate-slide-up" style="animation-delay:0.4s">
+            <div class="card card-glass gradient-border">
+              <div class="card-header">
+                <h3 class="card-title">Quick Actions</h3>
+              </div>
+              <div class="flex-col gap-sm">
+                <a href="/resume-analysis" class="btn btn-secondary" style="justify-content:flex-start">
+                  <span style="font-size:1.2rem">📄</span> Upload Resume
+                </a>
+                <a href="/mock-interview" class="btn btn-secondary" style="justify-content:flex-start">
+                  <span style="font-size:1.2rem">🎤</span> Start Mock Interview
+                </a>
+                <a href="/coding-challenge" class="btn btn-secondary" style="justify-content:flex-start">
+                  <span style="font-size:1.2rem">💻</span> Practice Coding
+                </a>
+                <button onclick="generateReport()" class="btn btn-primary" style="justify-content:flex-start;margin-top:var(--space-sm)">
+                  <span style="font-size:1.2rem">📊</span> Download Report
+                </button>
+              </div>
+            </div>
+
+            <div class="card">
+              <div class="card-header">
+                <h3 class="card-title">Score Weightage</h3>
+              </div>
+              <div class="flex-col gap-md">
+                <div>
+                  <div style="display:flex;justify-content:space-between;margin-bottom:4px;font-size:0.8rem">
+                    <span>Aptitude (40%)</span>
+                    <span id="weight-aptitude">--</span>
+                  </div>
+                  <div class="progress-bar"><div class="progress-fill" id="bar-aptitude" style="width:0%"></div></div>
+                </div>
+                <div>
+                  <div style="display:flex;justify-content:space-between;margin-bottom:4px;font-size:0.8rem">
+                    <span>Coding (40%)</span>
+                    <span id="weight-coding">--</span>
+                  </div>
+                  <div class="progress-bar"><div class="progress-fill" id="bar-coding" style="width:0%"></div></div>
+                </div>
+                <div>
+                  <div style="display:flex;justify-content:space-between;margin-bottom:4px;font-size:0.8rem">
+                    <span>Interview (20%)</span>
+                    <span id="weight-interview">--</span>
+                  </div>
+                  <div class="progress-bar"><div class="progress-fill" id="bar-interview" style="width:0%"></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <script src="/js/api.js"></script>
+  <script src="/js/components.js"></script>
+  <script>
+    let radarChart;
+
+    document.addEventListener('DOMContentLoaded', async () => {
+      initDashboardPage('candidate-dashboard');
+      await loadDashboardData();
+    });
+
+    async function loadDashboardData() {
+      const res = await api.get('/candidates/dashboard');
+      if (!res.success) {
+        toast.error('Failed to load dashboard data');
+        return;
+      }
+
+      const { stats, recentActivity, scores } = res.data;
+
+      // Update Stats
+      const statCards = document.querySelectorAll('.stat-value');
+      statCards[0].textContent = stats.globalRank ? `#${stats.globalRank}` : 'N/A';
+      statCards[1].textContent = stats.overallScore ? `${stats.overallScore}/100` : '0/100';
+      statCards[2].textContent = stats.testsTaken || '0';
+      statCards[3].textContent = stats.problemsSolved || '0';
+
+      // Update Weightage Bars
+      document.getElementById('weight-aptitude').textContent = `${scores.aptitudeScore}/100`;
+      document.getElementById('bar-aptitude').style.width = `${scores.aptitudeScore}%`;
+      document.getElementById('bar-aptitude').style.background = getScoreColor(scores.aptitudeScore);
+
+      document.getElementById('weight-coding').textContent = `${scores.codingScore}/100`;
+      document.getElementById('bar-coding').style.width = `${scores.codingScore}%`;
+      document.getElementById('bar-coding').style.background = getScoreColor(scores.codingScore);
+
+      document.getElementById('weight-interview').textContent = `${scores.interviewScore}/100`;
+      document.getElementById('bar-interview').style.width = `${scores.interviewScore}%`;
+      document.getElementById('bar-interview').style.background = getScoreColor(scores.interviewScore);
+
+      // Render Radar Chart
+      const ctx = document.getElementById('radarChart').getContext('2d');
+      const textColor = getComputedStyle(document.documentElement).getPropertyValue('--text-primary').trim();
+      const gridColor = getComputedStyle(document.documentElement).getPropertyValue('--border-primary').trim();
+      const primaryColor = getComputedStyle(document.documentElement).getPropertyValue('--primary-500').trim();
+
+      radarChart = new Chart(ctx, {
+        type: 'radar',
+        data: {
+          labels: ['Aptitude', 'Coding', 'Interview', 'Resume Score'],
+          datasets: [{
+            label: 'Your Score',
+            data: [scores.aptitudeScore, scores.codingScore, scores.interviewScore, 75], // Resume mock score
+            backgroundColor: 'rgba(99, 102, 241, 0.2)',
+            borderColor: primaryColor,
+            pointBackgroundColor: primaryColor,
+            pointBorderColor: '#fff',
+            pointHoverBackgroundColor: '#fff',
+            pointHoverBorderColor: primaryColor
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          scales: {
+            r: {
+              angleLines: { color: gridColor },
+              grid: { color: gridColor },
+              pointLabels: { color: textColor, font: { size: 12, family: 'Inter' } },
+              ticks: { color: textColor, backdropColor: 'transparent', stepSize: 20, max: 100, min: 0 }
+            }
+          },
+          plugins: {
+            legend: { display: false }
+          }
+        }
+      });
+
+      // Update Activity Table
+      const tbody = document.getElementById('activity-table');
+      if (recentActivity.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="4" class="text-center">No recent activity found.</td></tr>';
+      } else {
+        tbody.innerHTML = recentActivity.map(log => {
+          let actionLabel = log.action.replace(/_/g, ' ').toUpperCase();
+          let score = log.details?.score || log.details?.percentage || 'N/A';
+          if (score !== 'N/A') score = `${score}%`;
+
+          return `
+            <tr>
+              <td style="font-weight:500">${actionLabel}</td>
+              <td>${formatDate(log.created_at)}</td>
+              <td><span class="badge badge-primary">Completed</span></td>
+              <td style="font-weight:700">${score}</td>
+            </tr>
+          `;
+        }).join('');
+      }
+    }
+
+    async function generateReport() {
+      toast.info('Generating your report, please wait...');
+      const res = await api.post('/reports/generate', { type: 'comprehensive' });
+      if (res.success) {
+        toast.success('Report generated! Downloading...');
+        api.download(`/reports/${res.data.reportId}/download`, res.data.fileName);
+      } else {
+        toast.error('Failed to generate report.');
+      }
+    }
+  </script>
+</body>
+</html>

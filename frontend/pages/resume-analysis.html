@@ -1,0 +1,231 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Resume Analysis — AI Interview Platform</title>
+  <link rel="stylesheet" href="/css/global.css">
+  <link rel="stylesheet" href="/css/pages.css">
+</head>
+<body>
+  
+  <div class="sidebar-overlay"></div>
+  <div class="app-layout">
+    <aside class="sidebar"></aside>
+
+    <main class="main-content">
+      <header class="top-header">
+        <div class="header-left">
+          <button class="mobile-menu-btn">☰</button>
+          <div>
+            <h2 class="page-title">Resume Analysis</h2>
+            <div class="breadcrumb">AI-powered parsing and evaluation</div>
+          </div>
+        </div>
+        <div class="header-right">
+          <div style="text-align:right">
+            <div style="font-weight:600;font-size:0.9rem" id="user-name">Loading...</div>
+            <div style="font-size:0.75rem;color:var(--text-tertiary)">Candidate</div>
+          </div>
+          <div class="avatar" id="user-avatar">C</div>
+        </div>
+      </header>
+
+      <div class="page-content">
+        <div class="grid" style="grid-template-columns:1fr 1fr;gap:var(--space-xl)">
+          
+          <!-- Upload Area -->
+          <div class="flex-col gap-lg animate-slide-up">
+            <div class="card">
+              <div class="card-header">
+                <h3 class="card-title">Upload Resume</h3>
+              </div>
+              <p style="color:var(--text-secondary);font-size:0.9rem;margin-bottom:var(--space-lg)">
+                Upload your latest resume in PDF format. Our AI will analyze your skills, education, and experience to generate a match score.
+              </p>
+              
+              <div class="upload-zone" id="drop-zone">
+                <input type="file" id="resume-input" accept=".pdf">
+                <div class="upload-icon">📄</div>
+                <div class="upload-text">Drag & drop your PDF resume here</div>
+                <div class="upload-hint">or click to browse files (Max 5MB)</div>
+              </div>
+
+              <div id="uploading-state" class="hidden text-center" style="padding:var(--space-xl) 0">
+                <div class="spinner" style="margin:0 auto var(--space-md)"></div>
+                <div style="font-weight:600">Analyzing Resume...</div>
+                <div style="font-size:0.8rem;color:var(--text-tertiary)">This usually takes 5-10 seconds</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Analysis Results -->
+          <div class="flex-col gap-lg animate-slide-up" style="animation-delay:0.2s">
+            <div class="card" id="results-card">
+              <div class="card-header">
+                <h3 class="card-title">Analysis Results</h3>
+                <span class="badge badge-primary" id="last-analyzed">Never</span>
+              </div>
+
+              <div id="no-results" class="empty-state">
+                <div class="empty-state-icon">🔍</div>
+                <div class="empty-state-title">No Resume Found</div>
+                <div class="empty-state-text">Upload your resume to see the AI analysis here.</div>
+              </div>
+
+              <div id="analysis-content" class="hidden">
+                <div class="score-gauge" style="margin:0 auto var(--space-xl);--score:0" id="resume-score-gauge">
+                  <div class="score-gauge-value" id="resume-score">0</div>
+                </div>
+                
+                <div style="text-align:center;margin-bottom:var(--space-xl);font-size:0.9rem;color:var(--text-secondary)">
+                  Overall ATS Compatibility Score
+                </div>
+
+                <div class="tags-container" style="margin-bottom:var(--space-xl)" id="skills-tags">
+                  <!-- Skills injected here -->
+                </div>
+
+                <div class="score-breakdown">
+                  <div class="score-item">
+                    <div class="score-item-label">Skills Match</div>
+                    <div class="score-item-bar"><div class="progress-bar"><div class="progress-fill" id="bar-skills" style="width:0%"></div></div></div>
+                    <div class="score-item-value" id="val-skills">0/40</div>
+                  </div>
+                  <div class="score-item">
+                    <div class="score-item-label">Education</div>
+                    <div class="score-item-bar"><div class="progress-bar"><div class="progress-fill" id="bar-edu" style="width:0%"></div></div></div>
+                    <div class="score-item-value" id="val-edu">0/30</div>
+                  </div>
+                  <div class="score-item">
+                    <div class="score-item-label">Experience</div>
+                    <div class="score-item-bar"><div class="progress-bar"><div class="progress-fill" id="bar-exp" style="width:0%"></div></div></div>
+                    <div class="score-item-value" id="val-exp">0/30</div>
+                  </div>
+                </div>
+
+                <div style="margin-top:var(--space-xl)">
+                  <h4 style="margin-bottom:var(--space-sm);font-size:0.9rem">AI Suggestions</h4>
+                  <ul id="suggestions-list" style="padding-left:var(--space-lg);font-size:0.85rem;color:var(--text-secondary);line-height:1.6">
+                    <!-- Suggestions injected here -->
+                  </ul>
+                </div>
+              </div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <script src="/js/api.js"></script>
+  <script src="/js/components.js"></script>
+  <script>
+    document.addEventListener('DOMContentLoaded', async () => {
+      initDashboardPage('resume-analysis');
+      setupDragAndDrop();
+      await loadLatestAnalysis();
+    });
+
+    function setupDragAndDrop() {
+      const dropZone = document.getElementById('drop-zone');
+      const input = document.getElementById('resume-input');
+
+      ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(evt => {
+        dropZone.addEventListener(evt, (e) => {
+          e.preventDefault();
+          e.stopPropagation();
+        });
+      });
+
+      ['dragenter', 'dragover'].forEach(evt => {
+        dropZone.addEventListener(evt, () => dropZone.classList.add('drag-over'));
+      });
+
+      ['dragleave', 'drop'].forEach(evt => {
+        dropZone.addEventListener(evt, () => dropZone.classList.remove('drag-over'));
+      });
+
+      dropZone.addEventListener('drop', (e) => {
+        const files = e.dataTransfer.files;
+        if (files.length) handleFileUpload(files[0]);
+      });
+
+      input.addEventListener('change', () => {
+        if (input.files.length) handleFileUpload(input.files[0]);
+      });
+    }
+
+    async function handleFileUpload(file) {
+      if (file.type !== 'application/pdf') {
+        toast.error('Only PDF files are supported.');
+        return;
+      }
+      if (file.size > 5 * 1024 * 1024) {
+        toast.error('File exceeds 5MB limit.');
+        return;
+      }
+
+      document.getElementById('drop-zone').classList.add('hidden');
+      document.getElementById('uploading-state').classList.remove('hidden');
+
+      const formData = new FormData();
+      formData.append('resume', file);
+
+      const res = await api.upload('/resumes/upload', formData);
+
+      document.getElementById('drop-zone').classList.remove('hidden');
+      document.getElementById('uploading-state').classList.add('hidden');
+
+      if (res.success) {
+        toast.success('Resume analyzed successfully!');
+        renderAnalysis(res.data);
+      } else {
+        toast.error(res.message || 'Analysis failed.');
+      }
+    }
+
+    async function loadLatestAnalysis() {
+      const res = await api.get('/resumes/analysis/latest');
+      if (res.success && res.data) {
+        renderAnalysis(res.data);
+      }
+    }
+
+    function renderAnalysis(data) {
+      document.getElementById('no-results').classList.add('hidden');
+      document.getElementById('analysis-content').classList.remove('hidden');
+
+      document.getElementById('last-analyzed').textContent = timeAgo(data.analyzed_at);
+
+      // Score Gauge
+      const score = parseFloat(data.overall_score);
+      document.getElementById('resume-score').textContent = score;
+      document.getElementById('resume-score-gauge').style.setProperty('--score', score);
+
+      // Breakdowns
+      const breakdown = data.score_breakdown;
+      document.getElementById('val-skills').textContent = `${breakdown.skillsScore}/40`;
+      document.getElementById('bar-skills').style.width = `${(breakdown.skillsScore/40)*100}%`;
+      document.getElementById('bar-skills').style.background = getScoreColor((breakdown.skillsScore/40)*100);
+
+      document.getElementById('val-edu').textContent = `${breakdown.educationScore}/30`;
+      document.getElementById('bar-edu').style.width = `${(breakdown.educationScore/30)*100}%`;
+      document.getElementById('bar-edu').style.background = getScoreColor((breakdown.educationScore/30)*100);
+
+      document.getElementById('val-exp').textContent = `${breakdown.experienceScore}/30`;
+      document.getElementById('bar-exp').style.width = `${(breakdown.experienceScore/30)*100}%`;
+      document.getElementById('bar-exp').style.background = getScoreColor((breakdown.experienceScore/30)*100);
+
+      // Skills
+      const skillsContainer = document.getElementById('skills-tags');
+      skillsContainer.innerHTML = data.detected_skills.map(s => `<span class="tag">${s}</span>`).join('');
+
+      // Suggestions
+      const list = document.getElementById('suggestions-list');
+      list.innerHTML = data.suggestions.map(s => `<li>${s}</li>`).join('');
+    }
+  </script>
+</body>
+</html>

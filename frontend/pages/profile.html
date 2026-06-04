@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Profile — AI Interview Platform</title>
+  <link rel="stylesheet" href="/css/global.css">
+  <link rel="stylesheet" href="/css/pages.css">
+</head>
+<body>
+  
+  <div class="sidebar-overlay"></div>
+  <div class="app-layout">
+    <aside class="sidebar"></aside>
+
+    <main class="main-content">
+      <header class="top-header">
+        <div class="header-left">
+          <button class="mobile-menu-btn">☰</button>
+          <div>
+            <h2 class="page-title">Profile Settings</h2>
+          </div>
+        </div>
+        <div class="header-right">
+          <div style="text-align:right">
+            <div style="font-weight:600;font-size:0.9rem" id="user-name">Loading...</div>
+            <div style="font-size:0.75rem;color:var(--text-tertiary)" id="user-role">User</div>
+          </div>
+          <div class="avatar" id="user-avatar">U</div>
+        </div>
+      </header>
+
+      <div class="page-content" style="max-width:800px;margin:0 auto">
+        <div class="profile-header animate-slide-up">
+          <div class="avatar avatar-xl" id="profile-avatar">U</div>
+          <div class="profile-info">
+            <h2 id="profile-name">Loading...</h2>
+            <div style="color:var(--text-secondary);font-size:0.9rem" id="profile-email">...</div>
+            <div class="profile-stats hidden" id="candidate-stats">
+              <div class="profile-stat">
+                <div class="profile-stat-value" id="stat-rank">--</div>
+                <div class="profile-stat-label">Global Rank</div>
+              </div>
+              <div class="profile-stat">
+                <div class="profile-stat-value" id="stat-score">--</div>
+                <div class="profile-stat-label">Overall Score</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="card animate-slide-up" style="animation-delay:0.1s">
+          <h3 class="card-title" style="margin-bottom:var(--space-lg)">Personal Information</h3>
+          
+          <form id="profile-form">
+            <div class="grid-2">
+              <div class="form-group">
+                <label class="form-label" for="firstName">First Name</label>
+                <input type="text" id="firstName" class="form-input" required>
+              </div>
+              <div class="form-group">
+                <label class="form-label" for="lastName">Last Name</label>
+                <input type="text" id="lastName" class="form-input" required>
+              </div>
+            </div>
+
+            <div id="candidate-fields" class="hidden">
+              <div class="grid-2">
+                <div class="form-group">
+                  <label class="form-label" for="college">University / College</label>
+                  <input type="text" id="college" class="form-input">
+                </div>
+                <div class="form-group">
+                  <label class="form-label" for="branch">Branch / Major</label>
+                  <input type="text" id="branch" class="form-input">
+                </div>
+              </div>
+              
+              <div class="grid-2">
+                <div class="form-group">
+                  <label class="form-label" for="degree">Degree</label>
+                  <input type="text" id="degree" class="form-input" placeholder="e.g. B.Tech, M.S.">
+                </div>
+                <div class="form-group">
+                  <label class="form-label" for="graduationYear">Graduation Year</label>
+                  <input type="number" id="graduationYear" class="form-input" min="2000" max="2030">
+                </div>
+              </div>
+            </div>
+
+            <div style="text-align:right;margin-top:var(--space-lg)">
+              <button type="submit" id="save-btn" class="btn btn-primary">Save Changes</button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <script src="/js/api.js"></script>
+  <script src="/js/components.js"></script>
+  <script>
+    document.addEventListener('DOMContentLoaded', async () => {
+      const user = initDashboardPage('profile');
+      if (user) {
+        document.getElementById('user-role').textContent = user.role.charAt(0).toUpperCase() + user.role.slice(1);
+        document.getElementById('profile-avatar').textContent = user.firstName[0];
+        document.getElementById('profile-name').textContent = `${user.firstName} ${user.lastName}`;
+        document.getElementById('profile-email').textContent = user.email;
+        
+        if (user.role === 'candidate') {
+          document.getElementById('candidate-fields').classList.remove('hidden');
+          document.getElementById('candidate-stats').classList.remove('hidden');
+        }
+      }
+
+      await loadProfile();
+    });
+
+    async function loadProfile() {
+      const res = await api.get('/users/profile');
+      if (res.success) {
+        const { user, profile, stats } = res.data;
+        
+        document.getElementById('firstName').value = user.first_name;
+        document.getElementById('lastName').value = user.last_name;
+
+        if (user.role === 'candidate' && profile) {
+          document.getElementById('college').value = profile.college || '';
+          document.getElementById('branch').value = profile.branch || '';
+          document.getElementById('degree').value = profile.degree || '';
+          document.getElementById('graduationYear').value = profile.graduation_year || '';
+        }
+
+        if (user.role === 'candidate' && stats) {
+          document.getElementById('stat-rank').textContent = stats.global_rank ? `#${stats.global_rank}` : 'N/A';
+          document.getElementById('stat-score').textContent = stats.overall_score || '0';
+        }
+      }
+    }
+
+    document.getElementById('profile-form').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      
+      const btn = document.getElementById('save-btn');
+      btn.disabled = true;
+      btn.innerHTML = '<div class="spinner spinner-sm"></div> Saving...';
+
+      const data = {
+        firstName: document.getElementById('firstName').value,
+        lastName: document.getElementById('lastName').value,
+      };
+
+      if (api.getUser().role === 'candidate') {
+        data.profileData = {
+          college: document.getElementById('college').value,
+          branch: document.getElementById('branch').value,
+          degree: document.getElementById('degree').value,
+          graduationYear: document.getElementById('graduationYear').value
+        };
+      }
+
+      const res = await api.put('/users/profile', data);
+
+      btn.disabled = false;
+      btn.innerHTML = 'Save Changes';
+
+      if (res.success) {
+        toast.success('Profile updated successfully!');
+        
+        // Update local storage user object
+        const user = api.getUser();
+        user.firstName = data.firstName;
+        user.lastName = data.lastName;
+        api.setUser(user);
+        
+        // Update UI
+        document.getElementById('user-name').textContent = `${data.firstName} ${data.lastName}`;
+        document.getElementById('profile-name').textContent = `${data.firstName} ${data.lastName}`;
+        document.getElementById('user-avatar').textContent = data.firstName[0];
+        document.getElementById('profile-avatar').textContent = data.firstName[0];
+
+      } else {
+        toast.error('Failed to update profile.');
+      }
+    });
+  </script>
+</body>
+</html>

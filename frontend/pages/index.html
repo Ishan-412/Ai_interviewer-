@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AI Interview Platform — Next-Gen Recruitment</title>
+  <link rel="stylesheet" href="/css/global.css">
+  <link rel="stylesheet" href="/css/pages.css">
+</head>
+<body>
+  
+  <div class="landing-page">
+    <nav class="landing-nav">
+      <div style="display:flex;align-items:center;gap:1rem">
+        <div class="auth-logo-icon" style="width:36px;height:36px;font-size:1.2rem">AI</div>
+        <div class="auth-logo-text" style="font-size:1.1rem">Interview Platform</div>
+      </div>
+      <div style="display:flex;gap:1rem;align-items:center">
+        <button class="theme-toggle" onclick="theme.toggle()"></button>
+        <a href="/login" class="btn btn-ghost">Log In</a>
+        <a href="/register" class="btn btn-primary">Sign Up</a>
+      </div>
+    </nav>
+
+    <header class="landing-hero">
+      <div class="hero-content">
+        <div class="hero-badge animate-slide-up">
+          <span style="font-size:1.2rem">✨</span> 
+          <span>Introducing AI-Powered Candidate Assessment</span>
+        </div>
+        <h1 class="hero-title animate-slide-up" style="animation-delay:0.1s">
+          Hire Top Talent with <br> <span class="gradient-text">Intelligent Interviews</span>
+        </h1>
+        <p class="hero-description animate-slide-up" style="animation-delay:0.2s">
+          A premium, enterprise-grade platform for evaluating candidates through automated mock interviews, coding challenges, and AI resume analysis. Completely free and runs locally.
+        </p>
+        <div class="hero-buttons animate-slide-up" style="animation-delay:0.3s">
+          <a href="/register?role=candidate" class="btn btn-primary">I'm a Candidate</a>
+          <a href="/register?role=recruiter" class="btn btn-secondary">I'm a Recruiter</a>
+        </div>
+      </div>
+    </header>
+
+    <section class="landing-stats">
+      <div class="stats-grid">
+        <div class="stat-item">
+          <div class="stat-item-value">100%</div>
+          <div class="stat-item-label">Automated Evaluation</div>
+        </div>
+        <div class="stat-item">
+          <div class="stat-item-value">3x</div>
+          <div class="stat-item-label">Faster Hiring Cycle</div>
+        </div>
+        <div class="stat-item">
+          <div class="stat-item-value">Real</div>
+          <div class="stat-item-label">Coding Sandbox</div>
+        </div>
+        <div class="stat-item">
+          <div class="stat-item-value">Zero</div>
+          <div class="stat-item-label">Cost to Run</div>
+        </div>
+      </div>
+    </section>
+
+    <section class="landing-features">
+      <div class="section-header">
+        <h2 class="section-title">Everything you need to assess candidates</h2>
+        <p class="section-subtitle">A complete suite of tools designed for modern recruitment and objective evaluation.</p>
+      </div>
+
+      <div class="features-grid stagger">
+        <div class="feature-card">
+          <div class="feature-icon">📄</div>
+          <h3 class="feature-title">AI Resume Parsing</h3>
+          <p class="feature-text">Automatically extract skills, education, and experience from PDF resumes using rule-based algorithms to score and rank candidates instantly.</p>
+        </div>
+        <div class="feature-card">
+          <div class="feature-icon">🎤</div>
+          <h3 class="feature-title">Mock Interviews</h3>
+          <p class="feature-text">Simulate real HR and technical interviews. Our intelligent scoring engine evaluates responses based on expected keywords and industry standards.</p>
+        </div>
+        <div class="feature-card">
+          <div class="feature-icon">💻</div>
+          <h3 class="feature-title">Coding Sandbox</h3>
+          <p class="feature-text">Evaluate technical skills with our built-in code editor supporting Python, Java, C++, and JavaScript with automated test case evaluation.</p>
+        </div>
+        <div class="feature-card">
+          <div class="feature-icon">📝</div>
+          <h3 class="feature-title">Aptitude Tests</h3>
+          <p class="feature-text">Assess logical reasoning, quantitative aptitude, and verbal ability with timed multiple-choice assessments and negative marking.</p>
+        </div>
+        <div class="feature-card">
+          <div class="feature-icon">🏆</div>
+          <h3 class="feature-title">Global Leaderboard</h3>
+          <p class="feature-text">Rank candidates based on a weighted composite score combining aptitude (40%), coding (40%), and interview performance (20%).</p>
+        </div>
+        <div class="feature-card">
+          <div class="feature-icon">📊</div>
+          <h3 class="feature-title">Comprehensive Reports</h3>
+          <p class="feature-text">Generate detailed PDF reports for each candidate containing performance breakdown, skill graphs, and actionable feedback.</p>
+        </div>
+      </div>
+    </section>
+
+    <footer class="landing-footer">
+      <p>&copy; 2026 AI Interview Platform. Built as a Final Year Major Project.</p>
+    </footer>
+  </div>
+
+  <script src="/js/components.js"></script>
+  <script>
+    // Redirect if already logged in
+    document.addEventListener('DOMContentLoaded', () => {
+      const user = localStorage.getItem('user');
+      if (user) {
+        try {
+          const parsed = JSON.parse(user);
+          if (parsed.role) {
+            window.location.href = `/${parsed.role}-dashboard`;
+          }
+        } catch(e){}
+      }
+    });
+  </script>
+</body>
+</html>
