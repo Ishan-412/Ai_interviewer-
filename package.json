@@ -1,15 +1,29 @@
 {
-  "name": "ai-interview-platform",
+  "name": "ai-interview-platform-backend",
   "version": "1.0.0",
-  "description": "AI-Powered Interview Preparation & Candidate Assessment Platform",
+  "description": "Backend server for AI Interview Platform",
   "main": "backend/server.js",
   "scripts": {
     "start": "node backend/server.js",
-    "dev": "node --watch backend/server.js",
-    "db:setup": "psql -U postgres -f backend/database/schema.sql",
-    "db:seed": "psql -U postgres -f backend/database/seed.sql"
+    "dev": "node --watch backend/server.js"
   },
-  "keywords": ["interview", "ai", "assessment", "recruitment"],
-  "author": "AI Interview Platform",
-  "license": "MIT"
+  "dependencies": {
+    "bcrypt": "^6.0.0",
+    "bcryptjs": "^2.4.3",
+    "cors": "^2.8.6",
+    "dotenv": "^16.6.1",
+    "express": "^4.22.2",
+    "express-rate-limit": "^7.1.4",
+    "express-validator": "^7.0.1",
+    "helmet": "^7.2.0",
+    "jsonwebtoken": "^9.0.3",
+    "morgan": "^1.11.0",
+    "multer": "^1.4.5-lts.1",
+    "pdf-parse": "^1.1.4",
+    "pdfkit": "^0.13.0",
+    "pg": "^8.21.0",
+    "pg-pool": "^3.14.0",
+    "socket.io": "^4.8.3",
+    "uuid": "^9.0.0"
+  }
 }
